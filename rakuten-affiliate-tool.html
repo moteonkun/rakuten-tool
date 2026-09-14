@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>楽天市場 商品検索・アフィリエイトリンク作成ツール</title>
+<style>
+  :root {
+    --ink: #1c2430;
+    --paper: #f6f5f1;
+    --panel: #ffffff;
+    --line: #e2e0d8;
+    --gold: #b8873f;
+    --gold-deep: #8f6529;
+    --muted: #6b7280;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Hiragino Sans", "Noto Sans JP", -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 28px 20px 60px; }
+  .eyebrow { font-size: 13px; letter-spacing: .3px; color: var(--gold-deep); font-weight: 600; margin-bottom: 6px; }
+  h1 { font-size: 26px; line-height: 1.3; margin: 0 0 8px; font-weight: 700; }
+  .lead { color: var(--muted); font-size: 14px; max-width: 560px; margin: 0 0 24px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; margin-bottom: 18px; }
+  .panel-header { display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-weight: 600; font-size: 14px; }
+  .panel-header .hint { font-weight: 400; color: var(--muted); font-size: 12px; }
+  .toggle-label { font-size: 12px; color: var(--muted); }
+  .field { margin-top: 14px; }
+  label.small { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+  input[type=text], input[type=search] {
+    width: 100%; padding: 10px 12px; font-size: 14px; border: 1px solid #d8d5cb;
+    border-radius: 8px; outline: none; background: #fff; color: var(--ink);
+  }
+  select {
+    padding: 8px 10px; font-size: 13px; border: 1px solid #d8d5cb; border-radius: 8px;
+    background: #fff; color: var(--ink);
+  }
+  .note { font-size: 12px; color: var(--muted); margin: 10px 0 0; }
+  .note a { color: var(--gold-deep); }
+  .search-row { display: flex; gap: 10px; margin-bottom: 12px; }
+  .search-input-wrap { position: relative; flex: 1; }
+  .search-input-wrap input { padding-left: 36px; }
+  .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 14px; }
+  button.primary {
+    background: var(--ink); color: #fff; border: none; border-radius: 8px;
+    padding: 0 22px; font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  button.primary:disabled { opacity: .6; cursor: default; }
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .filters input[type=text] { width: 100px; padding: 8px 10px; }
+  .chips { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .chips .label { font-size: 12px; color: var(--muted); margin-right: 4px; }
+  .chip {
+    font-size: 12px; padding: 6px 12px; border-radius: 999px; border: 1px solid #d8d5cb;
+    background: #fff; color: #4a4436; cursor: pointer;
+  }
+  .error-box {
+    background: #fdf2ee; border: 1px solid #eecfc2; color: #9a4a2c; border-radius: 8px;
+    padding: 10px 14px; font-size: 13px; margin-bottom: 18px; display: flex;
+    justify-content: space-between; align-items: center;
+  }
+  .error-box span.close { cursor: pointer; font-weight: bold; padding-left: 12px; }
+  #results { display: grid; gap: 12px; }
+  .card { display: flex; gap: 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+  .card img { width: 88px; height: 88px; object-fit: cover; border-radius: 8px; flex-shrink: 0; background: #f0efe9; }
+  .card-body { flex: 1; min-width: 0; }
+  .card-title {
+    font-size: 14px; font-weight: 600; color: var(--ink); text-decoration: none; display: block;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .meta { display: flex; gap: 14px; align-items: center; margin-top: 6px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+  .price { font-weight: 700; color: var(--gold-deep); font-size: 15px; }
+  .actions { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+  .action-btn {
+    display: flex; align-items: center; gap: 6px; font-size: 12px; padding: 7px 12px; border-radius: 7px;
+    border: 1px solid #d8d5cb; background: #fff; color: var(--ink); cursor: pointer; white-space: nowrap;
+    text-decoration: none; justify-content: center;
+  }
+  .empty { text-align: center; color: var(--muted); padding: 40px 0; font-size: 14px; }
+  .star { color: var(--gold); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">楽天市場 API 連携ツール</div>
+  <h1>商品を検索して、アフィリエイトリンクをすぐコピー</h1>
+  <p class="lead">楽天ウェブサービスのアプリIDと、楽天アフィリエイトIDを入力すると、商品検索の結果に自動でアフィリエイトリンクが付与されます。</p>
+
+  <div class="panel">
+    <div class="panel-header" id="credsToggle">
+      <span>API認証情報 <span class="hint" id="credsStatus"></span></span>
+      <span class="toggle-label" id="credsToggleLabel">閉じる</span>
+    </div>
+    <div id="credsBody">
+      <div class="field">
+        <label class="small">楽天アプリケーションID(必須)</label>
+        <input type="text" id="applicationId" placeholder="例: 44bb094b-0828-4764-a6f7-f0f2d8fc3da3">
+      </div>
+      <div class="field">
+        <label class="small">アクセスキー(必須・アプリ管理画面の「アクセスキー」欄)</label>
+        <input type="text" id="accessKey" placeholder="アクセスキーを入力">
+      </div>
+      <div class="field">
+        <label class="small">楽天アフィリエイトID(任意・未入力の場合は通常リンクを表示)</label>
+        <input type="text" id="affiliateId" placeholder="例: 1a2b3c4d.5e6f7g8h...">
+      </div>
+      <p class="note">
+        ※ 入力した値はこのページを開いている間のみブラウザ内に保持され、楽天のAPI以外には送信されません。
+        アプリケーションID・アクセスキーは <a href="https://webservice.rakuten.co.jp/app/list" target="_blank" rel="noreferrer">楽天ウェブサービスのアプリ一覧</a> に、
+        アフィリエイトIDは <a href="https://affiliate.rakuten.co.jp/" target="_blank" rel="noreferrer">楽天アフィリエイト</a>
+        の管理画面にそれぞれ表示されています。2026年5月の楽天API移行以降、新規発行されたアプリでは applicationId に加えて accessKey も必須になっています。
+      </p>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="search-row">
+      <div class="search-input-wrap">
+        <span class="search-icon">&#128269;</span>
+        <input type="search" id="keyword" placeholder="例: メンズ 洗顔料">
+      </div>
+      <button class="primary" id="searchBtn">検索</button>
+    </div>
+    <div class="filters">
+      <select id="sort">
+        <option value="standard">標準</option>
+        <option value="-reviewCount">レビュー件数が多い順</option>
+        <option value="-reviewAverage">評価が高い順</option>
+        <option value="+itemPrice">価格が安い順</option>
+        <option value="-itemPrice">価格が高い順</option>
+      </select>
+      <input type="text" id="minPrice" placeholder="最低価格">
+      <span style="color:var(--muted); font-size:13px;">〜</span>
+      <input type="text" id="maxPrice" placeholder="最高価格">
+    </div>
+    <div class="chips" id="chips">
+      <span class="label">候補キーワード:</span>
+      <button class="chip" data-kw="メンズ 洗顔料">メンズ 洗顔料</button>
+      <button class="chip" data-kw="メンズ 香水">メンズ 香水</button>
+      <button class="chip" data-kw="メンズ スキンケア セット">メンズ スキンケア セット</button>
+      <button class="chip" data-kw="メンズ 日焼け止め">メンズ 日焼け止め</button>
+      <button class="chip" data-kw="ヘアワックス メンズ">ヘアワックス メンズ</button>
+    </div>
+  </div>
+
+  <div id="errorBox" style="display:none;" class="error-box">
+    <span id="errorText"></span>
+    <span class="close" id="errorClose">&times;</span>
+  </div>
+
+  <div id="results"></div>
+  <div id="emptyMsg" class="empty" style="display:none;">該当する商品が見つかりませんでした。</div>
+</div>
+
+<script>
+(function () {
+  var credsBody = document.getElementById('credsBody');
+  var credsToggle = document.getElementById('credsToggle');
+  var credsToggleLabel = document.getElementById('credsToggleLabel');
+  var credsStatus = document.getElementById('credsStatus');
+  var applicationIdInput = document.getElementById('applicationId');
+  var accessKeyInput = document.getElementById('accessKey');
+  var affiliateIdInput = document.getElementById('affiliateId');
+  var keywordInput = document.getElementById('keyword');
+  var sortSelect = document.getElementById('sort');
+  var minPriceInput = document.getElementById('minPrice');
+  var maxPriceInput = document.getElementById('maxPrice');
+  var searchBtn = document.getElementById('searchBtn');
+  var resultsEl = document.getElementById('results');
+  var emptyMsg = document.getElementById('emptyMsg');
+  var errorBox = document.getElementById('errorBox');
+  var errorText = document.getElementById('errorText');
+  var errorClose = document.getElementById('errorClose');
+  var chipsWrap = document.getElementById('chips');
+
+  var credsOpen = true;
+  credsToggle.addEventListener('click', function () {
+    credsOpen = !credsOpen;
+    credsBody.style.display = credsOpen ? '' : 'none';
+    credsToggleLabel.textContent = credsOpen ? '閉じる' : '開く';
+  });
+
+  function updateCredsStatus() {
+    credsStatus.textContent = applicationIdInput.value.trim() ? '・設定済み' : '';
+  }
+  applicationIdInput.addEventListener('input', updateCredsStatus);
+
+  function showError(msg) {
+    errorText.textContent = msg;
+    errorBox.style.display = 'flex';
+  }
+  function hideError() {
+    errorBox.style.display = 'none';
+  }
+  errorClose.addEventListener('click', hideError);
+
+  minPriceInput.addEventListener('input', function () {
+    this.value = this.value.replace(/\D/g, '');
+  });
+  maxPriceInput.addEventListener('input', function () {
+    this.value = this.value.replace(/\D/g, '');
+  });
+
+  chipsWrap.querySelectorAll('.chip').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var kw = btn.getAttribute('data-kw');
+      keywordInput.value = kw;
+      runSearch(kw);
+    });
+  });
+
+  keywordInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') runSearch();
+  });
+  searchBtn.addEventListener('click', function () { runSearch(); });
+
+  // --- JSONP helper (avoids CORS issues when calling Rakuten's API directly from the browser) ---
+  var jsonpCounter = 0;
+  function jsonpRequest(url) {
+    return new Promise(function (resolve, reject) {
+      var callbackName = 'rakuten_jsonp_cb_' + Date.now() + '_' + (jsonpCounter++);
+      var script = document.createElement('script');
+      var settled = false;
+
+      function cleanup() {
+        delete window[callbackName];
+        if (script.parentNode) script.parentNode.removeChild(script);
+      }
+
+      window[callbackName] = function (data) {
+        settled = true;
+        cleanup();
+        resolve(data);
+      };
+
+      script.src = url + '&callback=' + callbackName;
+      script.onerror = function () {
+        if (!settled) {
+          cleanup();
+          reject(new Error('リクエストに失敗しました。アプリIDが正しいか確認してください。'));
+        }
+      };
+      document.body.appendChild(script);
+
+      setTimeout(function () {
+        if (!settled) {
+          cleanup();
+          reject(new Error('タイムアウトしました。もう一度お試しください。'));
+        }
+      }, 12000);
+    });
+  }
+
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str == null ? '' : String(str);
+    return div.innerHTML;
+  }
+
+  function renderResults(items) {
+    resultsEl.innerHTML = '';
+    emptyMsg.style.display = items.length === 0 ? 'block' : 'none';
+
+    items.forEach(function (item, idx) {
+      var img = (item.mediumImageUrls && item.mediumImageUrls[0] && item.mediumImageUrls[0].imageUrl) ||
+                (item.smallImageUrls && item.smallImageUrls[0] && item.smallImageUrls[0].imageUrl) || '';
+      var link = item.affiliateUrl || item.itemUrl;
+      var card = document.createElement('div');
+      card.className = 'card';
+
+      var reviewHtml = '';
+      if (item.reviewCount > 0) {
+        reviewHtml = '<span><span class="star">&#9733;</span> ' + escapeHtml(item.reviewAverage) + '(' + escapeHtml(item.reviewCount) + ')</span>';
+      }
+
+      card.innerHTML =
+        '<img src="' + escapeHtml(img) + '" alt="' + escapeHtml(item.itemName) + '">' +
+        '<div class="card-body">' +
+          '<a class="card-title" href="' + escapeHtml(item.itemUrl) + '" target="_blank" rel="noreferrer">' + escapeHtml(item.itemName) + '</a>' +
+          '<div class="meta">' +
+            '<span class="price">¥' + Number(item.itemPrice).toLocaleString() + '</span>' +
+            '<span>' + escapeHtml(item.shopName) + '</span>' +
+            reviewHtml +
+          '</div>' +
+        '</div>' +
+        '<div class="actions">' +
+          '<button class="action-btn copy-btn" data-link="' + escapeHtml(link) + '" data-idx="' + idx + '">&#128203; リンクをコピー</button>' +
+          '<a class="action-btn" href="' + escapeHtml(item.itemUrl) + '" target="_blank" rel="noreferrer">&#8599; 商品ページ</a>' +
+        '</div>';
+
+      resultsEl.appendChild(card);
+    });
+
+    resultsEl.querySelectorAll('.copy-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var link = btn.getAttribute('data-link');
+        navigator.clipboard.writeText(link).then(function () {
+          var original = btn.innerHTML;
+          btn.innerHTML = '&#10003; コピー済み';
+          setTimeout(function () { btn.innerHTML = original; }, 1500);
+        });
+      });
+    });
+  }
+
+  function runSearch(kwArg) {
+    var appId = applicationIdInput.value.trim();
+    var accessKey = accessKeyInput.value.trim();
+    var affId = affiliateIdInput.value.trim();
+    var term = (kwArg !== undefined ? kwArg : keywordInput.value).trim();
+
+    hideError();
+
+    if (!appId || !accessKey) {
+      showError('楽天アプリケーションIDとアクセスキーの両方を入力してください。');
+      credsOpen = true;
+      credsBody.style.display = '';
+      credsToggleLabel.textContent = '閉じる';
+      return;
+    }
+    if (!term) {
+      showError('検索キーワードを入力してください。');
+      return;
+    }
+
+    searchBtn.disabled = true;
+    searchBtn.textContent = '検索中…';
+    emptyMsg.style.display = 'none';
+
+    var params = new URLSearchParams({
+      format: 'json',
+      keyword: term,
+      applicationId: appId,
+      accessKey: accessKey,
+      hits: '20',
+      sort: sortSelect.value
+    });
+    if (affId) params.set('affiliateId', affId);
+    if (minPriceInput.value) params.set('minPrice', minPriceInput.value);
+    if (maxPriceInput.value) params.set('maxPrice', maxPriceInput.value);
+
+    var url = 'https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20220601?' + params.toString();
+
+    jsonpRequest(url).then(function (data) {
+      if (data.error) {
+        showError('楽天APIエラー: ' + (data.error_description || data.error));
+        resultsEl.innerHTML = '';
+      } else {
+        var list = (data.Items || []).map(function (wrap) { return wrap.Item; });
+        renderResults(list);
+        if (list.length === 0) showError('該当する商品が見つかりませんでした。');
+      }
+    }).catch(function (e) {
+      showError(e.message || '検索中にエラーが発生しました。');
+      resultsEl.innerHTML = '';
+    }).finally(function () {
+      searchBtn.disabled = false;
+      searchBtn.textContent = '検索';
+    });
+  }
+})();
+</script>
+</body>
+</html>
